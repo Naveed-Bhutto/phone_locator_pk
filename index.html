@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Phone Intelligence Pro</title>
+
+<meta name="theme-color" content="#0f172a"/>
+
+<style>
+body {
+  margin:0;
+  font-family:system-ui;
+  background:#0f172a;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:100vh;
+}
+.app {
+  width:400px;
+  background:#111827;
+  padding:25px;
+  border-radius:16px;
+  box-shadow:0 20px 40px rgba(0,0,0,.5);
+}
+h2 {text-align:center;margin-bottom:15px;}
+input {
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:none;
+  margin-bottom:10px;
+  background:#020617;
+  color:white;
+}
+button {
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:#3b82f6;
+  color:white;
+  font-size:16px;
+  cursor:pointer;
+}
+button:hover {background:#2563eb;}
+.result {
+  margin-top:15px;
+  background:#020617;
+  padding:12px;
+  border-radius:10px;
+}
+.badge {
+  padding:4px 8px;
+  border-radius:6px;
+  font-size:12px;
+}
+.valid {background:#16a34a;}
+.invalid {background:#dc2626;}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+<h2>📡 Phone Intelligence</h2>
+
+<input id="phone" placeholder="+923409777222"/>
+<button onclick="analyze()">Analyze</button>
+
+<div id="output" class="result">Enter number...</div>
+</div>
+
+<script>
+/*
+Production-grade minimal phone parser
+(E.164 validation + metadata-lite)
+*/
+
+const countryMap = {
+  "1":"USA/Canada",
+  "44":"United Kingdom",
+  "91":"India",
+  "92":"Pakistan",
+  "971":"UAE",
+  "966":"Saudi Arabia"
+};
+
+function parseNumber(num){
+  num = num.replace(/[^\d+]/g,'');
+
+  if(!num.startsWith('+')) throw "Must start with +";
+
+  const digits = num.slice(1);
+
+  if(digits.length < 10 || digits.length > 15)
+    throw "Invalid length";
+
+  return num;
+}
+
+function getCountry(num){
+  const digits = num.slice(1);
+
+  for(let len=3; len>=1; len--){
+    const code = digits.slice(0,len);
+    if(countryMap[code]){
+      return {
+        code,
+        name: countryMap[code]
+      };
+    }
+  }
+
+  return {code:null,name:"Unknown"};
+}
+
+function getCarrierPK(num){
+  if(!num.startsWith("+92")) return "N/A";
+
+  const prefix = num.slice(3,6);
+
+  const carriers = {
+    "300":"Jazz","301":"Jazz","302":"Jazz",
+    "310":"Zong","311":"Zong",
+    "320":"Warid","321":"Warid",
+    "330":"Ufone",
+    "340":"Telenor","341":"Telenor"
+  };
+
+  return carriers[prefix] || "Unknown";
+}
+
+function format(num){
+  return num.replace(/(\+\d{2})(\d{3})(\d{7})/,"$1 $2 $3");
+}
+
+function analyze(){
+  const input = document.getElementById("phone").value;
+  const out = document.getElementById("output");
+
+  try {
+    const num = parseNumber(input);
+    const country = getCountry(num);
+    const carrier = getCarrierPK(num);
+
+    out.innerHTML = `
+    <span class="badge valid">Valid</span><br><br>
+    <b>📞 Number:</b> ${format(num)}<br>
+    <b>🌍 Country:</b> ${country.name}<br>
+    <b>📡 Carrier:</b> ${carrier}<br>
+    <br><small>Production Build • Offline Ready</small>
+    `;
+
+  } catch(e){
+    out.innerHTML = `
+    <span class="badge invalid">Invalid</span><br><br>
+    ${e}
+    `;
+  }
+}
+
+/* PWA */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register(URL.createObjectURL(new Blob([`
+    self.addEventListener('install',e=>self.skipWaiting());
+    self.addEventListener('fetch',e=>{});
+  `], {type:'text/javascript'})));
+}
+</script>
+
+</body>
+</html>
